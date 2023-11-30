@@ -21,4 +21,28 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
-replay_pid*
+/bin/
+
+# eclipse files
+.classpath
+.project
+
+# vi files
+*.swp
+
+# jupyter notebooks
+.ipynb_checkpoints/
+
+# vscode
+.vscode/
+.project
+
+# Ignore python builds
+*.pyc
+__pycache__/
+build/
+dist/
+*.egg-info/
+
+# Ignore rust builds
+target/
