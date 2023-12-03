@@ -14,22 +14,21 @@ public class DayThree {
 	
 	public static void main(String[] args) throws Exception {
 		List<String> lines = Files.readAllLines(Paths.get(DayThree.class.getResource("input-day03.txt").toURI()));
-//		List<String> lines = Files.readAllLines(Paths.get(DayThree.class.getResource("test-input-day03.txt").toURI()));
 
 		Schematic schematic = parseSchematic(lines);
-		
 		System.out.println("Part 1: " + findPartNumbers(schematic));
-
 		System.out.println("Part 2: " + findGearRatios(schematic));
-
 	}
+
+	private static final Character DOT = Character.valueOf('.');
+	private static final Character GEAR = Character.valueOf('*');
 	
 	public static long findGearRatios(Schematic schematic) {
 		Map<Coord, List<Long>> gearsAndParts = new HashMap<DayThree.Coord, List<Long>>();
 		
 		for(int y = 0; y <= schematic.sizeY; y++) {
 			
-			StringBuilder partNumber = null;
+			StringBuilder partNumber = new StringBuilder();
 			Set<Coord> gears = new HashSet<>();
 			
 			for(int x = 0; x <= schematic.sizeX; x++) {
@@ -37,45 +36,32 @@ public class DayThree {
 				final Character c = schematic.get(coord);
 
 				if (Character.isDigit(c)) {
-					if (partNumber == null) {
-						partNumber = new StringBuilder();
-					}
 					partNumber.append(c);
 					
-					for(Coord neighbour : neighbours(coord)) {
-						if (schematic.get(neighbour) == '*') {
-							gears.add(neighbour);
-						}
-					}
+					neighbours(coord).stream()
+						.filter(neighbour -> schematic.get(neighbour) == GEAR)
+						.forEach(gears::add);					
 				} 
 				
 				if (!Character.isDigit(c) || x == schematic.sizeX) {
-					if (partNumber != null) {
-						final Long number = Long.valueOf(partNumber.toString());
-						for (Coord gear : gears) {
-							gearsAndParts.computeIfAbsent(gear, k -> new ArrayList<Coord>());
-							List<Long> list = gearsAndParts.get(gear);
-							if (list == null) {
-								list = new ArrayList<Long>();
-								gearsAndParts.put(gear, list);
-							}
-							list.add(number);
-						}
+					if (partNumber.length() > 0) {
+						Long number = Long.valueOf(partNumber.toString());
+						
+						gears.forEach(gear -> {
+							gearsAndParts.computeIfAbsent(gear, k -> new ArrayList<Long>())
+								.add(number);
+						});
 					}
-					partNumber = null;
+					partNumber = new StringBuilder();
 					gears = new HashSet<DayThree.Coord>();
 				}
 			}
 		}
-		long result = 0l;
-		for (Coord gear : gearsAndParts.keySet()) {
-			List<Long> list = gearsAndParts.get(gear);
-			if (list.size() == 2) {
-				System.out.println(gear +  " -> " + list);
-				result += list.get(0) * list.get(1);
-			}
-		}
-		return result;
+		
+		return gearsAndParts.values().stream()
+			.filter(parts -> parts.size() == 2)
+			.mapToLong(parts -> parts.get(0) * parts.get(1))
+			.sum();
 	
 	}
 	
@@ -83,7 +69,7 @@ public class DayThree {
 		long result = 0l;
 		
 		for(int y = 0; y <= schematic.sizeY; y++) {
-			StringBuilder partNumber = null;
+			StringBuilder partNumber = new StringBuilder();
 			boolean adjacent = false;
 			
 			for(int x = 0; x <= schematic.sizeX; x++) {
@@ -91,9 +77,6 @@ public class DayThree {
 				final Character c = schematic.get(coord);
 
 				if (Character.isDigit(c)) {
-					if (partNumber == null) {
-						partNumber = new StringBuilder();
-					}
 					partNumber.append(c);
 					
 					adjacent |= neighbours(coord).stream()
@@ -102,15 +85,12 @@ public class DayThree {
 						.findAny()
 						.isPresent();
 				} 
+				
 				if (!Character.isDigit(c) || x == schematic.sizeX) {
-					if (partNumber != null) {
-						System.out.println("    number " + partNumber + ", adjacent = " + adjacent);
-						long number = Long.parseLong(partNumber.toString());
-						if (adjacent) {
-							result += number;							
-						}
+					if (partNumber.length() > 0 && adjacent) {
+						result += Long.parseLong(partNumber.toString());							
 					}
-					partNumber = null;
+					partNumber = new StringBuilder();
 					adjacent = false;
 				}
 			}
@@ -125,18 +105,15 @@ public class DayThree {
 	
 	private static List<Coord> neighbours(Coord coord) {
 		List<Coord> result = new ArrayList<>();
-		for(int i = coord.y-1; i <= coord.y+1 ; i++) {
+		for (int i = coord.y-1; i <= coord.y+1 ; i++) {
 			for (int j = coord.x-1; j <= coord.x+1; j++) {
-				if (i == coord.y && j == coord.x) {
-				} else {
+				if (i != coord.y || j != coord.x) {
 					result.add(new Coord(j, i));
 				}
 			}
 		}
 		return result;
 	}
-	
-	private static final Character DOT = Character.valueOf('.');
 	
 	public static Schematic parseSchematic(List<String> lines) {
 		Schematic schematic = new Schematic();
