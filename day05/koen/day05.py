@@ -39,20 +39,24 @@ class MappingRange():
         self.source_min = source_min
         self.source_max = source_min + range_length
         self.target_min = target_min
+        self.target_max = target_min + range_length
 
-    def map(self, source_value) -> int:
-        if source_value < self.source_min or source_value >= self.source_max:
-            return None
-        return self.target_min + source_value - self.source_min
+    def in_range(self, source_value: int) -> bool:
+        return source_value >= self.source_min and source_value < self.source_max
+
+    def map(self, source_value: int) -> int:
+        if self.in_range(source_value):
+            return self.target_min + source_value - self.source_min
+        return None
     
 
 class Mapping():
 
-
     def __init__(self, source, target, mapping_ranges, logger):
         self.source = source
         self.target = target
-        self.mapping_ranges = [MappingRange(*x) for x in mapping_ranges]
+        self.mapping_ranges: list[MappingRange] = [MappingRange(*x) for x in mapping_ranges]
+        self.mapping_ranges.sort(key=lambda x: x.source_min)
         self.logger = logger
 
     def map(self, source_value) -> int:
@@ -70,6 +74,37 @@ class Mapping():
             mapped_values.append(mapped_value)
         return mapped_values
     
+    def map_range(self, source_range):
+        mapped_ranges = []
+        source_min, source_max = source_range
+        for mapping_range in self.mapping_ranges:
+            target_min = None
+            target_max = None
+            reset_source_min = False
+            if mapping_range.in_range(source_min) or mapping_range.in_range(source_max):
+                target_min = mapping_range.map(source_min)
+                if mapping_range.in_range(source_max):
+                    target_max = mapping_range.map(source_max)
+                else:
+                    target_max = mapping_range.target_max - 1
+                    reset_source_min = True
+            if target_min is not None:
+                mapped_ranges.append((target_min, target_max))
+            if reset_source_min:
+                source_min = mapping_range.source_max
+        if not mapped_ranges:
+            mapped_ranges.append(source_range)
+        return mapped_ranges
+    
+
+    def map_all_ranges(self, source_ranges):
+        mapped_values = []
+        for source_range in source_ranges:
+            mapped_ranges = self.map_range(source_range)
+            self.logger.debug(f"  {source_range} to {mapped_ranges}")
+            mapped_values.extend(mapped_ranges)
+        mapped_values.sort(key=lambda x: x[0])
+        return mapped_values
 
 class MappingGraph():
 
@@ -85,3 +120,10 @@ class MappingGraph():
             mapping = self.mapping_graph.get(mapping.target)
         return source_values
     
+    def do_range_mapping(self, target, source_ranges):
+        mapping = self.mapping_graph.get(target)
+        while mapping:
+            self.logger.info(f"Mapping {mapping.source} to {mapping.target}")
+            source_ranges = mapping.map_all_ranges(source_ranges)
+            mapping = self.mapping_graph.get(mapping.target)
+        return source_ranges
