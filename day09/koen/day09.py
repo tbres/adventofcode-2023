@@ -9,7 +9,9 @@ def parse_input(path):
             yield parse_line(line)
 
 
-def extrapolate(history, logger):
+def extrapolate(history, logger, reverse=False):
+    if reverse:
+        history.reverse()
     result = []
     logger.debug(f"Checking {history}")
     while not all([x == 0 for x in history]):
