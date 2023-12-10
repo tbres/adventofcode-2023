@@ -1,0 +1,4 @@
+START_MAPPING = {
+    1: 'F'
+}
+START_DEFAULT = '|'
