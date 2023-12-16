@@ -34,7 +34,6 @@ public class DayEight {
 		
 		for(int step = 0; true ; step++) {
 			char c = instructions.charAt(step % instructions.length());
-			System.out.println(step + " -> " + c);
 			if (c == 'L') {
 				current = nodes.get(current.left);
 			} else {
@@ -42,7 +41,6 @@ public class DayEight {
 			}
 			
 			if (current.name.equals("ZZZ")) {
-				System.out.println("GOAL " + (step+1));
 				return step+1;
 			}
 		}
@@ -71,6 +69,7 @@ public class DayEight {
 					String key = startNodes.get(i) + " -> " + n;
 					final int nbr = step + 1;
 					goals.computeIfAbsent(key, k -> nbr);
+					System.out.println((step+1) +  " : " + key);
 				}
 				next.add(n);
 			}
@@ -96,17 +95,19 @@ public class DayEight {
 		return result;
 	}
 	
-	public static Set<Integer> primeFactors(int number) {
+	public static Set<Integer> primeFactors(final int number) {
 		Set<Integer> result = new HashSet<Integer>();
-		for (int i = 2; i < number; i++) {
-			while(number % i == 0 ) {
+		int tmp = number;
+		for (int i = 2; i < tmp; i++) {
+			while(tmp % i == 0 ) {
 				result.add(i);
-				number = number/i;
+				tmp = tmp/i;
 			}
 		}
-		if(number > 2) {
-			result.add(number);
+		if(tmp > 2) {
+			result.add(tmp);
 		}
+		System.out.println(number + " -> " + result);
 		return result;		
 	}
 	

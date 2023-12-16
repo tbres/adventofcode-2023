@@ -49,8 +49,8 @@ public class DaySeven {
 		String[] split = line.split("\\s");
 		return new Hand(split[0].toCharArray(), Long.parseLong(split[1]));
 	}
-	
-	public static final class Hand implements Comparable<Hand> {
+
+	private static final class Hand implements Comparable<Hand> {
 		private final char[] cards;
 		
 		private final long bid;
