@@ -23,7 +23,8 @@ public class DayEighteen {
     }
 
     private static long shoelaceArea(List<Coord> corners) {
-        long circumference = 0l;
+        //The circumference is needed, because the elements on the border also have to be counted.
+        long circumference = 0l; 
         long result = 0;
 
         for (int i = 1; i < corners.size(); i++) {
