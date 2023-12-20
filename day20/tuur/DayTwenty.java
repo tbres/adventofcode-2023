@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.function.LongBinaryOperator;
 import java.util.stream.Collectors;
 
 public class DayTwenty {
@@ -11,29 +13,63 @@ public class DayTwenty {
         List<String> lines = Files.readAllLines(Paths.get(DayTwenty.class.getResource("input-day20.txt").toURI()));
 
         Map<String, Module> modules = parse(lines);
-        
         PulseCounter counter = new PulseCounter();
 
         for(int i = 0; i < 1000; i++) {
             push(modules, counter);
         }
-        System.out.println(counter);
+        
         System.out.println("Part 1: " + (counter.high * counter.low));
 
         /**************************************************************/
 
         modules = parse(lines);
         counter = new PulseCounter();
-        
-        long pushes = 0l;
+        LongAccumulator buttonPushes = new LongAccumulator((i, j) -> i + j, 0l);
 
-        Sink rx = (Sink) modules.get("rx");
-        while (rx.off()) {
-            pushes++;
+        // A bit of magic, I have manually identified these nodes.
+        // Check out the svg file for more information
+        Decorator qm = (Decorator) modules.compute("qm", (key, value) -> new Decorator(value, buttonPushes));
+        Decorator jd = (Decorator) modules.compute("jd", (key, value) -> new Decorator(value, buttonPushes));
+        Decorator nf = (Decorator) modules.compute("nf", (key, value) -> new Decorator(value, buttonPushes));
+        Decorator pm = (Decorator) modules.compute("pm", (key, value) -> new Decorator(value, buttonPushes));
+
+        while (buttonPushes.longValue() < 10_000) {
+            buttonPushes.accumulate(1l);
             push(modules, counter);
         }
-        System.out.println("Part 2: " + pushes);
+
+        System.out.println("Part 2: " + lowestCommonMultiple(Arrays.asList(qm.interval, jd.interval, nf.interval, pm.interval)));
     }
+
+    public static long lowestCommonMultiple(Collection<Long> numbers) {
+		Set<Long> primeFactors = new HashSet<>();
+		for(Long nb : numbers) {
+			primeFactors.addAll(primeFactors(nb));
+		}
+		
+		long result = 1l;
+		for(Long factor : primeFactors) {
+			result *= factor.longValue();
+		}
+		return result;
+	}
+	
+	public static Set<Long> primeFactors(final long number) {
+		Set<Long> result = new HashSet<>();
+		long tmp = number;
+		for (long i = 2l; i < tmp; i++) {
+			while(tmp % i == 0l ) {
+				result.add(i);
+				tmp = tmp/i;
+			}
+		}
+		if(tmp > 2l) {
+			result.add(tmp);
+		}
+		System.out.println(number + " -> " + result);
+		return result;		
+	}
 
     private static void push(Map<String, Module> modules, PulseCounter counter) {
         List<Signal> signalsToProcess = new ArrayList<>();
@@ -142,6 +178,14 @@ public class DayTwenty {
 
     private static enum Pulse {
         low, high;
+
+        public boolean isHigh() {
+            return(high.equals(this));
+        }
+
+        public boolean isLow() {
+            return(low.equals(this));
+        }
     }
 
     public static abstract class Module {
@@ -229,7 +273,7 @@ public class DayTwenty {
                     output = Pulse.low;
                 } else {
                     state = true;
-                    output =Pulse.high;
+                    output = Pulse.high;
                 }
 
                 return destinations.stream()
@@ -272,6 +316,30 @@ public class DayTwenty {
         @Override
         public String toString() {
             return "Sink " + name;
+        }
+    }
+
+    public static final class Decorator extends Module {
+        final Module module;
+        final LongAccumulator counter;
+
+        Long interval;
+
+        public Decorator(Module module, LongAccumulator counter) {
+            super(module.name, module.destinations);
+            this.module = module;
+            this.counter = counter;
+        }
+        @Override
+        List<Signal> accept(Signal signal) {
+            List<Signal> result = module.accept(signal);
+            if (!result.isEmpty() && result.get(0).pulse.isLow()) {
+                if (interval == null) {
+                    interval = counter.longValue();
+                }
+                System.out.println(name + " is low at " + counter.longValue());
+            }
+            return result;
         }
     }
 }
