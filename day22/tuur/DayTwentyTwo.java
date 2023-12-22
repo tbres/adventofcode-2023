@@ -27,24 +27,64 @@ public class DayTwentyTwo {
             .map(DayTwentyTwo::parseLine)
             .peek(System.out::println)
             .collect(Collectors.toList());
-
-        System.out.println();
         
         Map<Line, Set<Line>> supporting = drop(lines); // brick 'key' is supporting brick 'values'
+
+        System.out.println("Part 1: " + part1(supporting));
+        
+        System.out.println("Part 2: " + part2(supporting));
+    }
+
+    private static int part2(Map<Line, Set<Line>> supporting) {
+        Map<Line, Set<Line>> supportedBy = new HashMap<>();
+        for (Entry<Line, Set<Line>> entry : supporting.entrySet()) {
+            for (Line line : entry.getValue()) {
+                supportedBy.computeIfAbsent(line, l -> new HashSet<Line>()).add(entry.getKey());
+            }
+        }
+
+        int chainReaction = 0;
+        for (Line line : supporting.keySet()) {
+            HashSet<Line> alreadyDisintegrated = new HashSet<>();
+            alreadyDisintegrated.add(line);
+
+            chainReaction += howManyOtherBricksWouldFall(line, supporting, supportedBy, alreadyDisintegrated);
+        }
+
+        return chainReaction;
+    }
+
+    private static int howManyOtherBricksWouldFall(Line line, Map<Line, Set<Line>> supporting, Map<Line, Set<Line>> supportedBy, Set<Line> alreadyDisintegrated) {
+        Set<Line> supportedLines = supporting.get(line);
+        if (supportedLines.isEmpty()) {
+            return 0;
+
+        } else {
+            int count = 0; // Other bricks that would fall, this brick excluded!
+            for (Line supported : supporting.get(line)) {
+                Set<Line> supports = new HashSet<>(supportedBy.get(supported));
+                supports.removeIf(alreadyDisintegrated::contains);
+
+                if (supports.isEmpty()) {
+                    alreadyDisintegrated.add(supported);
+                    int tmp = howManyOtherBricksWouldFall(supported, supporting, supportedBy, alreadyDisintegrated);
+                    count += tmp + 1;
+                }
+            }
+            return count; 
+        }
+    }
+
+    private static int part1(Map<Line, Set<Line>> supporting) {
         Map<Line, Integer> supports = supporting.values().stream()
             .flatMap(Set::stream)
             .collect(Collectors.toMap(line -> line, line -> 1, Integer::sum));
 
-        System.out.println();
-        supports.entrySet().forEach(System.out::println);
-
         int blocksToDisintegrate = 0;
         for (Entry<Line, Set<Line>> entry : supporting.entrySet()) {
-            System.out.println(entry.getKey());
 
             boolean safeToDisintegrate = true;
             for (Line supported : entry.getValue()) {
-                System.out.println("  supports " + supported + " : " + supports.get(supported));
                 if (supports.get(supported) == 1) {
                     safeToDisintegrate = false;
                 }
@@ -53,8 +93,7 @@ public class DayTwentyTwo {
                 blocksToDisintegrate++;
             }
         }
-        
-        System.out.println("Part 1: " + blocksToDisintegrate);
+        return blocksToDisintegrate;
     }
 
     private static Map<Line, Set<Line>> drop(List<Line> lines) {
